@@ -12,7 +12,8 @@ const nextConfig = {
           "api.goonchan.org",
           "img.youtube.com",
           "i.ytimg.com",
-          "localhost"
+          "localhost",
+          "proofly.siddz.com"
         ],
         remotePatterns: [
           {
