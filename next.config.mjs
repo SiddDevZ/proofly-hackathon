@@ -13,7 +13,9 @@ const nextConfig = {
           "img.youtube.com",
           "i.ytimg.com",
           "localhost",
-          "proofly.siddz.com"
+          "proofly.siddz.com",
+          "siddz.com",
+          "api.siddz.com"
         ],
         remotePatterns: [
           {
