@@ -1,0 +1,23 @@
+{
+  "name": "proofly-backend",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch server.js",
+    "start": "nodemon server.js"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.13.1",
+    "dotenv": "^16.6.1",
+    "ethers": "^6.15.0",
+    "hardhat": "^3.0.6",
+    "hashcat": "^0.4.1",
+    "hono": "^4.9.7",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.7.0",
+    "multer": "^2.0.2",
+    "nodemon": "^3.1.10",
+    "qrcode": "^1.5.4",
+    "sharp": "^0.34.3"
+  }
+}
