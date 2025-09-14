@@ -2,6 +2,8 @@ import { Hono } from 'hono';
 import multer from 'multer';
 import crypto from 'crypto';
 import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import QRCode from 'qrcode';
 import sharp from 'sharp';
 import universityAuthMiddleware from '../middleware/universityAuthMiddleware.js';
@@ -13,6 +15,16 @@ import blockchainService from '../utils/blockchain.js';
 import config from '../../config.json' assert { type: 'json' };
 
 const router = new Hono();
+
+// Get __dirname equivalent for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Create uploads directory with absolute path
+const uploadsDir = path.resolve(__dirname, '../uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
 
 const generateSlug = () => {
   const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
@@ -60,11 +72,7 @@ const addQRCodeToImage = async (imageBuffer, qrData) => {
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const dir = 'uploads/';
-    if (!fs.existsSync(dir)){
-        fs.mkdirSync(dir);
-    }
-    cb(null, dir);
+    cb(null, uploadsDir);
   },
   filename: (req, file, cb) => {
     cb(null, `${Date.now()}-${file.originalname}`);
@@ -94,7 +102,8 @@ router.post('/issue', universityAuthMiddleware, async (c) => {
 
     const timestamp = Date.now();
     const originalName = file.name.split('.')[0];
-    const filePath = `uploads/${timestamp}-${originalName}.png`;
+    const fileName = `${timestamp}-${originalName}.png`;
+    const filePath = path.join(uploadsDir, fileName);
     const fileBuffer = await file.arrayBuffer();
 
     let slug;
@@ -124,7 +133,7 @@ router.post('/issue', universityAuthMiddleware, async (c) => {
         student: studentId,
         university: university._id,
         title,
-        imagePath: filePath,
+        imagePath: `uploads/${fileName}`, // Store relative path for serving
         credentialHash: hash,
         slug,
         blockchainTxHash: blockchainTxHash, // Store the blockchain transaction hash
@@ -148,7 +157,7 @@ router.post('/issue', universityAuthMiddleware, async (c) => {
         student: studentId,
         university: university._id,
         title,
-        imagePath: filePath,
+        imagePath: `uploads/${fileName}`, // Store relative path for serving
         credentialHash: hash,
         slug,
         blockchainTxHash: null, // No blockchain transaction
@@ -359,8 +368,11 @@ router.delete('/revoke/:credentialId', universityAuthMiddleware, async (c) => {
         });
 
         // Delete the credential file if it exists
-        if (credential.imagePath && fs.existsSync(credential.imagePath)) {
-            fs.unlinkSync(credential.imagePath);
+        if (credential.imagePath) {
+            const absoluteFilePath = path.resolve(__dirname, '..', credential.imagePath);
+            if (fs.existsSync(absoluteFilePath)) {
+                fs.unlinkSync(absoluteFilePath);
+            }
         }
 
         // Delete the credential from database
