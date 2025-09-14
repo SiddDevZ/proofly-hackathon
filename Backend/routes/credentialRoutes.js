@@ -22,9 +22,33 @@ const __dirname = path.dirname(__filename);
 
 // Create uploads directory with absolute path
 const uploadsDir = path.resolve(__dirname, '../uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
+
+// Ensure uploads directory exists with better error handling
+const ensureUploadsDir = () => {
+  try {
+    if (!fs.existsSync(uploadsDir)) {
+      console.log(`Creating uploads directory at: ${uploadsDir}`);
+      fs.mkdirSync(uploadsDir, { recursive: true });
+      console.log(`✅ Created uploads directory: ${uploadsDir}`);
+    } else {
+      console.log(`✅ Uploads directory exists: ${uploadsDir}`);
+    }
+  } catch (error) {
+    console.error('❌ Error creating uploads directory:', error);
+    // Try alternative path
+    const altUploadsDir = path.join(process.cwd(), 'Backend', 'uploads');
+    try {
+      if (!fs.existsSync(altUploadsDir)) {
+        fs.mkdirSync(altUploadsDir, { recursive: true });
+      }
+    } catch (altError) {
+      console.error('❌ Failed to create alternative uploads directory:', altError);
+    }
+  }
+};
+
+// Call this when the module loads
+ensureUploadsDir();
 
 const generateSlug = () => {
   const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
@@ -119,7 +143,26 @@ router.post('/issue', universityAuthMiddleware, async (c) => {
     const qrUrl = `${config.frontend_url}/validate?q=${slug}`;
     const modifiedImageBuffer = await addQRCodeToImage(Buffer.from(fileBuffer), qrUrl);
     
-    fs.writeFileSync(filePath, modifiedImageBuffer);
+    // Ensure directory exists before writing file
+    try {
+      if (!fs.existsSync(uploadsDir)) {
+        console.log(`Directory missing, recreating: ${uploadsDir}`);
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
+      
+      // Verify the file path is correct
+      console.log(`Writing file to: ${filePath}`);
+      fs.writeFileSync(filePath, modifiedImageBuffer);
+      console.log(`✅ File written successfully: ${filePath}`);
+      
+      // Verify file was created
+      if (!fs.existsSync(filePath)) {
+        throw new Error('File was not created successfully');
+      }
+    } catch (writeError) {
+      console.error('❌ File write error:', writeError);
+      throw new Error(`Failed to write file: ${writeError.message}`);
+    }
 
     const hash = crypto.createHash('sha256').update(modifiedImageBuffer).digest('hex');
 

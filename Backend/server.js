@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 import { serveStatic } from '@hono/node-server/serve-static';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 import config from '../config.json' assert { type: 'json' };
 
 // Import routes
@@ -18,6 +19,22 @@ dotenv.config();
 // Get __dirname equivalent for ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Debug logging for paths
+console.log('🔍 Debug Info:');
+console.log(`Current working directory: ${process.cwd()}`);
+console.log(`__dirname: ${__dirname}`);
+console.log(`Resolved uploads path: ${path.resolve(__dirname, 'uploads')}`);
+
+// Ensure uploads directory exists
+const uploadsDir = path.resolve(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  console.log(`Creating uploads directory: ${uploadsDir}`);
+  fs.mkdirSync(uploadsDir, { recursive: true });
+  console.log(`✅ Created uploads directory`);
+} else {
+  console.log(`✅ Uploads directory already exists`);
+}
 
 const app = new Hono();
 
@@ -32,6 +49,18 @@ mongoose.connect(process.env.DATABASE_URL)
   .catch((error) => console.error('❌ Database error:', error));
 
 app.get('/', (c) => c.json({ message: 'Proofly Backend API' }));
+
+// Debug route to check file system
+app.get('/debug', (c) => {
+  const debugInfo = {
+    cwd: process.cwd(),
+    __dirname,
+    uploadsDir,
+    uploadsExists: fs.existsSync(uploadsDir),
+    uploadsDirContents: fs.existsSync(uploadsDir) ? fs.readdirSync(uploadsDir) : 'Directory does not exist'
+  };
+  return c.json(debugInfo);
+});
 
 // Mount API routes
 app.route('/api/student', studentAuth);
@@ -56,3 +85,4 @@ serve({
 
 console.log(`🚀 Server running at ${config.backend_url}`);
 console.log(`📁 Serving static files from: ${path.resolve(__dirname, 'uploads')}`);
+console.log(`🔍 Visit ${config.backend_url}/debug for filesystem debug info`);
