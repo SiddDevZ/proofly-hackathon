@@ -62,7 +62,7 @@ const generateSlug = () => {
 const addQRCodeToImage = async (imageBuffer, qrData) => {
   try {
     const qrCodeBuffer = await QRCode.toBuffer(qrData, {
-      width: 200,
+      width: 100,
       margin: 1,
       color: {
         dark: '#000000',
@@ -73,7 +73,7 @@ const addQRCodeToImage = async (imageBuffer, qrData) => {
     const image = sharp(imageBuffer);
     const metadata = await image.metadata();
 
-    const qrSize = 200;
+    const qrSize = 100;
     const margin = 20;
     const left = metadata.width - qrSize - margin;
     const top = metadata.height - qrSize - margin;
