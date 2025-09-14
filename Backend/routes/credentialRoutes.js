@@ -353,6 +353,58 @@ router.get('/student', studentAuthMiddleware, async (c) => {
     }
 });
 
+// Download endpoint for students
+router.get('/download/:credentialId', studentAuthMiddleware, async (c) => {
+    try {
+        const credentialId = c.req.param('credentialId');
+        const student = c.get('student');
+
+        console.log(`Download request for credential: ${credentialId} by student: ${student._id}`);
+
+        // Find the credential and verify ownership
+        const credential = await Credential.findById(credentialId);
+        
+        if (!credential) {
+            console.log('Credential not found');
+            return c.json({ error: 'Credential not found' }, 404);
+        }
+
+        if (credential.student.toString() !== student._id.toString()) {
+            console.log('Unauthorized access attempt');
+            return c.json({ error: 'Unauthorized access to credential' }, 403);
+        }
+
+        const filePath = path.resolve(__dirname, '../', credential.imagePath);
+        console.log(`Attempting to serve file from: ${filePath}`);
+        
+        if (!fs.existsSync(filePath)) {
+            console.error(`File not found: ${filePath}`);
+            return c.json({ error: 'File not found' }, 404);
+        }
+
+        const fileBuffer = fs.readFileSync(filePath);
+        const fileName = `${credential.title.replace(/[^a-zA-Z0-9\s]/g, '_')}.png`;
+        
+        console.log(`File size: ${fileBuffer.length} bytes, filename: ${fileName}`);
+        
+        // Set proper headers for download
+        c.res.headers.set('Content-Type', 'image/png');
+        c.res.headers.set('Content-Disposition', `attachment; filename="${fileName}"`);
+        c.res.headers.set('Content-Length', fileBuffer.length.toString());
+        c.res.headers.set('Cache-Control', 'no-cache');
+        c.res.headers.set('Access-Control-Expose-Headers', 'Content-Disposition');
+        
+        return new Response(fileBuffer, {
+            status: 200,
+            headers: c.res.headers
+        });
+        
+    } catch (error) {
+        console.error('Download error:', error);
+        return c.json({ error: 'Server error' }, 500);
+    }
+});
+
 // Route to get credentials issued by the logged-in university
 router.get('/university', universityAuthMiddleware, async (c) => {
     try {

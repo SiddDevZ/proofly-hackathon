@@ -96,22 +96,36 @@ const page = () => {
     setDownloadingCredentialId(credential._id);
     
     try {
-      const response = await fetch(`${BACKEND_URL}/${credential.imagePath}`);
+      const token = localStorage.getItem('proofly_student_token');
+      const response = await fetch(`${BACKEND_URL}/api/credentials/download/${credential._id}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+
       const blob = await response.blob();
       
       // Create download link
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${credential.title}.png`;
+      link.download = `${credential.title.replace(/[^a-zA-Z0-9]/g, '_')}.png`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
       
+      toast.success('Certificate downloaded successfully!');
+      
     } catch (error) {
       console.error('Download failed:', error);
-      toast.error('Failed to download certificate. Please try again.');
+      toast.error(error.message || 'Failed to download certificate. Please try again.');
     } finally {
       setDownloadingCredentialId(null);
     }
